@@ -127,3 +127,20 @@ compartido está en `src/test/.../support/` (`RestDocsConfig`, `SecurityDocsTest
   - `SPRING_JPA_HIBERNATE_DDL_AUTO` / `SPRING_SQL_INIT_MODE`: **opcionales** — el default del código
     ya es seguro (`update` / `never`); déjalas sin definir o explícitas, pero **no** las pongas en
     `create-drop` / `always` en prod.
+- **Claves RSA para JWT** — los archivos `src/main/resources/certs/*.pem` están en `.gitignore` y
+  **no** se incluyen en la imagen. En Render hay que proveerlos como _Secret Files_ y apuntar las
+  propiedades a ellos vía variables de entorno:
+  1. En **Settings → Secret Files** sube los dos archivos:
+     - Filename: `private.pem` → contenido de `certs/private.pem`
+     - Filename: `public.pem` → contenido de `certs/public.pem`
+     (Render los monta en `/etc/secrets/<filename>` automáticamente)
+  2. En **Settings → Environment** agrega:
+
+     ```text
+     APP_RSA_PRIVATE_KEY=file:/etc/secrets/private.pem
+     APP_RSA_PUBLIC_KEY=file:/etc/secrets/public.pem
+     ```
+
+  Spring Boot mapea `APP_RSA_PRIVATE_KEY` → `app.rsa.private-key` (relaxed binding); el prefijo
+  `file:` indica ruta de sistema de archivos en lugar de classpath. Si faltan estas entradas, la
+  app arranca con `FileNotFoundException` y falla el deploy.

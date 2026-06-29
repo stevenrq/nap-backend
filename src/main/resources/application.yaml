@@ -21,8 +21,8 @@ spring:
 
 app:
   rsa:
-    private-key: classpath:certs/private.pem
-    public-key: classpath:certs/public.pem
+    private-key: ${APP_RSA_PRIVATE_KEY:classpath:certs/private.pem}
+    public-key: ${APP_RSA_PUBLIC_KEY:classpath:certs/public.pem}
   cors:
     # Orígenes permitidos (lista separada por comas). Por defecto, el dev server de Angular.
     allowed-origins: ${APP_CORS_ALLOWED_ORIGINS:http://localhost:4200}
