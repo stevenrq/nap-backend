@@ -9,6 +9,7 @@ import java.util.HashMap;
 import java.util.Map;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
+import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -28,6 +29,7 @@ import org.springframework.transaction.annotation.Transactional;
  * roles a usuarios concretos siguen gestionándose como datos (panel / {@code data.sql} en dev).
  */
 @Component
+@Order(1)
 public class RbacSeeder implements ApplicationRunner {
 
   private static final String ADMIN_ROLE = "ADMIN";
