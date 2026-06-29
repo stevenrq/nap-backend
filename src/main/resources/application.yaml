@@ -1,0 +1,43 @@
+spring:
+  application:
+    name: nap-backend
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/nap_db}
+    username: ${SPRING_DATASOURCE_USERNAME:postgres}
+    password: ${SPRING_DATASOURCE_PASSWORD:nap_db_password}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    open-in-view: false # Desactiva OSIV para liberar conexiones de la BD tan pronto termine la transaccion.
+    hibernate:
+      # Default seguro: no destruye el esquema. Dev lo cambia a create-drop con
+      # SPRING_JPA_HIBERNATE_DDL_AUTO (.env.dev); Spring lo enlaza por su nombre canónico.
+      ddl-auto: update
+    defer-datasource-initialization: true # Ejecuta data.sql DESPUES de que Hibernate cree el esquema.
+  sql:
+    init:
+      # Default seguro: no siembra. Dev lo cambia a always con SPRING_SQL_INIT_MODE (.env.dev) para
+      # ejecutar data.sql en la BD de desarrollo (Postgres no embebida).
+      mode: never
+
+app:
+  rsa:
+    private-key: classpath:certs/private.pem
+    public-key: classpath:certs/public.pem
+  cors:
+    # Orígenes permitidos (lista separada por comas). Por defecto, el dev server de Angular.
+    allowed-origins: ${APP_CORS_ALLOWED_ORIGINS:http://localhost:4200}
+
+security:
+  jwt:
+    user:
+      generator: nap-backend-auth-server
+    access-token:
+      expiration-minutes: ${JWT_ACCESS_EXP_MIN:15}
+    refresh-token:
+      expiration-days: ${JWT_REFRESH_EXP_DAYS:7}
+      cookie:
+        name: refresh_token
+        path: /api/auth
+        http-only: true
+        secure: ${JWT_COOKIE_SECURE:false} # true en producción (HTTPS)
+        same-site: ${JWT_COOKIE_SAMESITE:Lax}

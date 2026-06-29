@@ -1,0 +1,206 @@
+= NAP Backend — Guía de la API
+:doctype: book
+:icons: font
+:toc: left
+:toclevels: 3
+:sectnums:
+:source-highlighter: highlightjs
+
+API REST de autenticación de NAP Backend. Esta guía se genera con Spring REST Docs a partir
+de tests, por lo que cada ejemplo refleja el comportamiento real verificado del servicio.
+
+== Overview
+
+[cols="1,3"]
+|===
+| URL base | `http://localhost:8080`
+| Formato | JSON (`application/json`)
+| Versión | Header `X-API-Version` (valor por defecto `1.0`, no obligatorio)
+| Errores | RFC 7807 `application/problem+json` (gestionado por `ApiExceptionHandler`)
+|===
+
+Las respuestas de error siguen el estándar https://datatracker.ietf.org/doc/html/rfc7807[RFC 7807]
+(`ProblemDetail`): por ejemplo, credenciales inválidas devuelven `401 Unauthorized` y los fallos de
+validación de campos devuelven `400 Bad Request` con el detalle por campo.
+
+== Authentication
+
+La API es *stateless* y se basa en JWT firmados con RSA:
+
+* El *access token* (JWT) se devuelve en el cuerpo (`accessToken`) tras el login/refresh y debe
+  enviarse en las peticiones protegidas mediante el header `Authorization: Bearer <token>`.
+* El *refresh token* viaja en una cookie `HttpOnly` llamada `refresh_token` (path `/api/auth`),
+  emitida en el login y rotada en cada `refresh`. El logout la revoca y la borra.
+
+Los endpoints bajo `/api/auth/**` son públicos; el resto requiere un access token válido.
+
+== Autorización: roles y permisos
+
+El control de acceso se basa en *permisos finos* (`resource:action`, p. ej. `role:read`,
+`user:delete`), no en nombres de rol. Cada endpoint protegido exige el permiso correspondiente
+(`@PreAuthorize("hasAuthority('role:read')")`). El access token incluye, en el claim `authorities`,
+la unión de los permisos de todos los roles del usuario.
+
+* *Permisos* — catálogo *propiedad de la API*: cada permiso corresponde a un punto de control real
+  en el código y se siembra desde la propia API. `GET /api/permissions` es de *solo lectura*; el
+  panel administrativo los consulta para componer roles, pero no puede crear/editar/borrar permisos.
+* *Roles* — agrupaciones *dinámicas* de permisos existentes, con CRUD completo en `/api/roles`. Un
+  rol nuevo compuesto con permisos del catálogo queda protegiendo sus endpoints de inmediato, sin
+  recompilar la API.
+
+== Endpoints de autenticación
+
+[[auth-sign-up]]
+=== Registro de usuario
+
+`POST /api/auth/sign-up` — Crea un usuario. No emite tokens: responde `201 Created` con la
+confirmación, sin cookie ni `accessToken`.
+
+operation::auth-sign-up[snippets='http-request,request-fields,http-response,response-fields']
+
+[[auth-login]]
+=== Inicio de sesión
+
+`POST /api/auth/log-in` — Autentica al usuario. Devuelve `200 OK` con el access token en el cuerpo
+y el refresh token en la cookie `HttpOnly`.
+
+operation::auth-login[snippets='http-request,request-fields,http-response,response-fields,response-cookies']
+
+[[auth-refresh]]
+=== Renovación de token
+
+`POST /api/auth/refresh` — Usa la cookie `refresh_token` para emitir un nuevo access token y rotar
+el refresh token. Devuelve `200 OK`.
+
+operation::auth-refresh[snippets='http-request,request-cookies,http-response,response-fields,response-cookies']
+
+[[auth-logout]]
+=== Cierre de sesión
+
+`POST /api/auth/logout` — Revoca el access token (denylist) y el refresh token, y borra la cookie.
+Requiere el header `Authorization`. Devuelve `204 No Content`.
+
+operation::auth-logout[snippets='http-request,request-headers,request-cookies,http-response']
+
+== Usuarios
+
+Endpoints bajo `/api/users` (requieren access token). Permisos: `user:read` para consultar,
+`user:delete` para borrar y `user:update` para actualizar. La actualización admite además
+*self-update*: un usuario puede editar su propia cuenta sin `user:update`, pero en ese caso los
+roles enviados se ignoran (no hay auto-escalada).
+
+[[users-get-all]]
+=== Listar usuarios
+
+`GET /api/users` — Devuelve todos los usuarios. Requiere `user:read`.
+
+operation::users-get-all[snippets='http-request,http-response']
+
+[[users-get-by-id]]
+=== Obtener usuario por id
+
+`GET /api/users/{id}` — Devuelve un usuario. Requiere `user:read`; responde `404 Not Found` si no
+existe.
+
+operation::users-get-by-id[snippets='http-request,path-parameters,http-response']
+
+[[users-update]]
+=== Actualizar usuario
+
+`PUT /api/users/{id}` — Actualiza los datos del usuario. Requiere `user:update` *o* ser el dueño de
+la cuenta. El `password` es opcional (solo se reescribe si se envía) y los roles solo los cambia un
+administrador con `user:update`.
+
+operation::users-update[snippets='http-request,path-parameters,request-fields,http-response,response-fields']
+
+[[users-delete]]
+=== Eliminar usuario
+
+`DELETE /api/users/{id}` — Elimina un usuario. Requiere `user:delete`. Devuelve `204 No Content`.
+
+operation::users-delete[snippets='http-request,path-parameters,http-response']
+
+== Roles
+
+Endpoints bajo `/api/roles` (requieren access token). Permisos: `role:read`, `role:create`,
+`role:update` y `role:delete` según la operación. Crear un rol o reemplazar sus permisos referencia
+nombres del catálogo; un permiso inexistente devuelve `400 Bad Request` y un rol inexistente
+`404 Not Found`.
+
+[[roles-get-all]]
+=== Listar roles
+
+`GET /api/roles` — Devuelve todos los roles. Requiere `role:read`.
+
+operation::roles-get-all[snippets='http-request,http-response']
+
+[[roles-get-by-id]]
+=== Obtener rol por id
+
+`GET /api/roles/{id}` — Requiere `role:read`; `404 Not Found` si no existe.
+
+operation::roles-get-by-id[snippets='http-request,path-parameters,http-response']
+
+[[roles-search]]
+=== Buscar rol por nombre
+
+`GET /api/roles/search?name=` — Requiere `role:read`.
+
+operation::roles-search[snippets='http-request,query-parameters,http-response']
+
+[[roles-create]]
+=== Crear rol
+
+`POST /api/roles` — Crea un rol con permisos del catálogo. Requiere `role:create`. Devuelve
+`201 Created`.
+
+operation::roles-create[snippets='http-request,request-fields,http-response,response-fields']
+
+[[roles-update]]
+=== Actualizar rol
+
+`PUT /api/roles/{id}` — Actualiza nombre y descripción (no sus permisos). Requiere `role:update`.
+
+operation::roles-update[snippets='http-request,path-parameters,http-response']
+
+[[roles-replace-permissions]]
+=== Reemplazar permisos de un rol
+
+`PUT /api/roles/{id}/permissions` — Sustituye el conjunto de permisos del rol. Requiere
+`role:update`.
+
+operation::roles-replace-permissions[snippets='http-request,path-parameters,http-response']
+
+[[roles-delete]]
+=== Eliminar rol
+
+`DELETE /api/roles/{id}` — Elimina un rol (desvinculándolo antes de los usuarios). Requiere
+`role:delete`. Devuelve `204 No Content`.
+
+operation::roles-delete[snippets='http-request,path-parameters,http-response']
+
+== Permisos
+
+Catálogo de *solo lectura* bajo `/api/permissions` (requieren access token y `permission:read`). No
+hay create/update/delete por diseño: los permisos son propiedad de la API.
+
+[[permissions-get-all]]
+=== Listar permisos
+
+`GET /api/permissions` — Devuelve el catálogo completo. Requiere `permission:read`.
+
+operation::permissions-get-all[snippets='http-request,http-response']
+
+[[permissions-get-by-id]]
+=== Obtener permiso por id
+
+`GET /api/permissions/{id}` — Requiere `permission:read`; `404 Not Found` si no existe.
+
+operation::permissions-get-by-id[snippets='http-request,path-parameters,http-response']
+
+[[permissions-search]]
+=== Buscar permiso por nombre
+
+`GET /api/permissions/search?name=` — Requiere `permission:read`.
+
+operation::permissions-search[snippets='http-request,query-parameters,http-response']

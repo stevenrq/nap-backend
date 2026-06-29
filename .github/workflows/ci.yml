@@ -1,0 +1,41 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+# Solo lectura del repositorio: el CI no escribe nada.
+permissions:
+  contents: read
+
+# Cancela ejecuciones antiguas de la misma rama/PR cuando llega un push nuevo.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Format check, build & test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 25 (Temurin)
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "25"
+          cache: maven # Cachea ~/.m2 usando el hash del pom.xml.
+
+      # Verifica el formato con Google Java Format (Spotless). Falla si algún
+      # archivo no está formateado. Localmente: ./mvnw spotless:apply
+      - name: Verify formatting (Google Java Format)
+        run: ./mvnw -B --no-transfer-progress spotless:check
+
+      # Compila, ejecuta los tests y empaqueta (incluye la generación de docs
+      # de Spring REST Docs en la fase package).
+      - name: Build & test
+        run: ./mvnw -B --no-transfer-progress verify
