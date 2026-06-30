@@ -45,11 +45,12 @@ jobs:
           auth="Authorization: Bearer ${RENDER_API_KEY}"
 
           echo "Disparando deploy en Render…"
-          deploy_id="$(curl -fsS -X POST "$api" \
+          response="$(curl -fsS -X POST "$api" \
             -H "$auth" \
             -H "Content-Type: application/json" \
-            -d '{"clearCache":"do_not_clear"}' \
-            | jq -r '.id // .deploy.id')"
+            -d '{"clearCache":"do_not_clear"}')"
+          echo "Respuesta de Render: $response"
+          deploy_id="$(echo "$response" | jq -r '.id // .deploy.id')"
 
           if [ -z "$deploy_id" ] || [ "$deploy_id" = "null" ]; then
             echo "::error::Render no devolvió un id de deploy."
