@@ -177,7 +177,7 @@ src/main/java/com/ns/nap_backend/
 
 - **CI** (`.github/workflows/ci.yml`): en cada push/PR a `main` verifica el formato
   (`spotless:check`), ejecuta `mvnw verify` y escanea las dependencias con
-  **OWASP Dependency-Check** (falla el build ante CVEs con CVSS ≥ 8).
+  **OSV-Scanner** (falla el build ante vulnerabilidades conocidas).
 - **CD** (`.github/workflows/cd.yml`): tras un CI exitoso en `main` (o disparo manual), lanza un
   deploy en **Render** vía API y espera a que quede `live`.
 
@@ -205,29 +205,20 @@ Configura estos secretos en el repositorio
 | ------------------- | -------- | -------------------------------------------------------------------------------------------------- |
 | `RENDER_API_KEY`    | CD       | API key de Render: Account Settings → API Keys.                                                    |
 | `RENDER_SERVICE_ID` | CD       | ID del servicio en Render (empieza con `srv-...`): visible en la URL del dashboard del servicio.   |
-| `NVD_API_KEY`       | CI       | API key de la NVD para OWASP Dependency-Check (ver abajo).                                          |
 
 Si faltan los de Render, el CD falla en segundos con el mensaje
 `Faltan los secretos RENDER_API_KEY y/o RENDER_SERVICE_ID`.
 
-#### NVD API key (escaneo de dependencias)
+#### Escaneo de dependencias (OSV-Scanner)
 
-OWASP Dependency-Check descarga la base **NVD** del NIST, cuya API está fuertemente
-limitada (rate-limited) sin clave: sin ella el escaneo puede tardar 10–30 min o fallar.
+El CI escanea las dependencias con **OSV-Scanner** (base [OSV](https://osv.dev/)),
+que corre en su propio contenedor y **no requiere NVD ni API key**. Falla el build si
+encuentra vulnerabilidades conocidas y resuelve también las transitivas desde `pom.xml`.
 
-1. Solicita una key gratuita en <https://nvd.nist.gov/developers/request-an-api-key>
-   (llega por correo al instante).
-2. Añádela como secreto del repositorio con el nombre `NVD_API_KEY`.
-
-El CI ya cachea la base NVD entre ejecuciones (`actions/cache`) y el plugin no la
-re-consulta si tiene menos de 24 h (`nvdValidForHours`), de modo que solo el primer
-run la descarga completa y los siguientes aplican deltas incrementales.
-
-Para ejecutarlo en local, exporta la variable y lanza el goal:
+Para ejecutarlo en local (requiere [instalar osv-scanner](https://google.github.io/osv-scanner/installation/)):
 
 ```bash
-export NVD_API_KEY=tu-key
-./mvnw org.owasp:dependency-check-maven:check
+osv-scanner --recursive --skip-git ./
 ```
 
 ## Seguridad

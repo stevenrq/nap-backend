@@ -30,7 +30,6 @@
 	<properties>
 		<java.version>25</java.version>
 		<bucket4j.version>8.14.0</bucket4j.version>
-		<dependency-check.version>12.1.3</dependency-check.version>
 	</properties>
 	<dependencies>
 		<dependency>
@@ -225,30 +224,6 @@
 						<removeUnusedImports />
 					</java>
 				</configuration>
-			</plugin>
-			<plugin>
-				<!-- Escaneo de dependencias contra la base NVD; falla el build ante CVEs altos.
-				Ejecutar manualmente: ./mvnw org.owasp:dependency-check-maven:check
-				Recomendado definir un NVD API key (env NVD_API_KEY) para evitar el rate limit. -->
-				<groupId>org.owasp</groupId>
-				<artifactId>dependency-check-maven</artifactId>
-				<version>${dependency-check.version}</version>
-				<configuration>
-					<failBuildOnCVSS>8</failBuildOnCVSS>
-					<nvdApiKeyEnvironmentVariable>NVD_API_KEY</nvdApiKeyEnvironmentVariable>
-					<!-- No re-consultar la NVD si los datos cacheados tienen menos de 24h: menos
-					llamadas, menos riesgo de rate limit. -->
-					<nvdValidForHours>24</nvdValidForHours>
-					<!-- La API de la NVD responde lento/intermitente; espaciar las llamadas y
-					reintentar evita el NPE "bytes is null" por cuerpos vacíos. -->
-					<nvdApiDelay>2000</nvdApiDelay>
-					<nvdApiMaxRetryCount>20</nvdApiMaxRetryCount>
-					<suppressionFiles>
-						<suppressionFile>dependency-check-suppressions.xml</suppressionFile>
-					</suppressionFiles>
-				</configuration>
-				<!-- No se enlaza a ninguna fase: se invoca explícitamente en CI para no ralentizar
-				cada build local. -->
 			</plugin>
 			<plugin>
 				<groupId>org.jacoco</groupId>

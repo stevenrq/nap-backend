@@ -40,38 +40,14 @@ jobs:
       - name: Build & test
         run: ./mvnw -B --no-transfer-progress verify
 
-      # Cachea la base de datos NVD entre ejecuciones para acelerar el escaneo.
-      # La clave incluye el run_id (siempre única) para que cada ejecución guarde una
-      # caché nueva con la base ya actualizada; restore-keys restaura la más reciente.
-      # Así la base no se queda obsoleta y el plugin solo aplica deltas incrementales.
-      - name: Cache OWASP NVD data
-        uses: actions/cache@v4
+      # Escaneo de vulnerabilidades de las dependencias contra la base OSV.
+      # Corre en su propio contenedor (sin NVD ni API key) y falla el build si
+      # encuentra vulnerabilidades conocidas. Resuelve también las transitivas
+      # a partir de pom.xml.
+      - name: OSV-Scanner (escaneo de dependencias)
+        uses: google/osv-scanner-action/osv-scanner-action@v2.3.8
         with:
-          path: ~/.m2/repository/org/owasp/dependency-check-data
-          key: nvd-data-${{ runner.os }}-${{ github.run_id }}
-          restore-keys: |
-            nvd-data-${{ runner.os }}-
-
-      # 1) Descarga/actualiza la base NVD. La API es lenta/intermitente, así que se
-      # reintenta hasta 3 veces (la base se cachea y cada intento avanza desde donde
-      # quedó). Separado del análisis para no reintentar ante un CVE real.
-      - name: Update NVD data
-        env:
-          NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
-        run: |
-          for attempt in 1 2 3; do
-            echo "::group::nvd update intento $attempt"
-            ./mvnw -B --no-transfer-progress org.owasp:dependency-check-maven:update-only && exit 0
-            echo "::endgroup::"
-            echo "Intento $attempt falló; reintentando en 20s..."
-            sleep 20
-          done
-          echo "No se pudo actualizar la base NVD tras 3 intentos"
-          exit 1
-
-      # 2) Analiza dependencias contra la base ya cacheada (no vuelve a llamar a la NVD
-      # gracias a nvdValidForHours). Falla el build ante CVEs con CVSS >= 8.
-      - name: OWASP Dependency-Check
-        env:
-          NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
-        run: ./mvnw -B --no-transfer-progress org.owasp:dependency-check-maven:check
+          scan-args: |-
+            --recursive
+            --skip-git
+            ./
