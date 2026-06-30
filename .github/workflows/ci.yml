@@ -52,9 +52,25 @@ jobs:
           restore-keys: |
             nvd-data-${{ runner.os }}-
 
-      # Escaneo de CVEs en dependencias; falla el build si hay vulnerabilidades de
-      # severidad alta (CVSS >= 8). Requiere el secret NVD_API_KEY (ver README).
-      # Sin la key el primer arranque es muy lento por el rate limit de la NVD.
+      # 1) Descarga/actualiza la base NVD. La API es lenta/intermitente, así que se
+      # reintenta hasta 3 veces (la base se cachea y cada intento avanza desde donde
+      # quedó). Separado del análisis para no reintentar ante un CVE real.
+      - name: Update NVD data
+        env:
+          NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
+        run: |
+          for attempt in 1 2 3; do
+            echo "::group::nvd update intento $attempt"
+            ./mvnw -B --no-transfer-progress org.owasp:dependency-check-maven:update-only && exit 0
+            echo "::endgroup::"
+            echo "Intento $attempt falló; reintentando en 20s..."
+            sleep 20
+          done
+          echo "No se pudo actualizar la base NVD tras 3 intentos"
+          exit 1
+
+      # 2) Analiza dependencias contra la base ya cacheada (no vuelve a llamar a la NVD
+      # gracias a nvdValidForHours). Falla el build ante CVEs con CVSS >= 8.
       - name: OWASP Dependency-Check
         env:
           NVD_API_KEY: ${{ secrets.NVD_API_KEY }}

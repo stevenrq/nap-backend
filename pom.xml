@@ -239,6 +239,10 @@
 					<!-- No re-consultar la NVD si los datos cacheados tienen menos de 24h: menos
 					llamadas, menos riesgo de rate limit. -->
 					<nvdValidForHours>24</nvdValidForHours>
+					<!-- La API de la NVD responde lento/intermitente; espaciar las llamadas y
+					reintentar evita el NPE "bytes is null" por cuerpos vacíos. -->
+					<nvdApiDelay>2000</nvdApiDelay>
+					<nvdApiMaxRetryCount>20</nvdApiMaxRetryCount>
 					<suppressionFiles>
 						<suppressionFile>dependency-check-suppressions.xml</suppressionFile>
 					</suppressionFiles>
