@@ -69,7 +69,7 @@ cp .env.example .env.dev
 Levanta PostgreSQL y la aplicación juntos (solo hay un Compose, para desarrollo):
 
 ```bash
-docker compose -f docker-compose.dev.yml --env-file .env.dev up --build
+docker compose up --build
 ```
 
 La API queda disponible en `http://localhost:8080`.
@@ -80,7 +80,7 @@ Levanta únicamente Postgres con Docker y ejecuta la app con el wrapper. Como `.
 no lee `.env.dev`, carga primero esas variables en el entorno:
 
 ```bash
-docker compose -f docker-compose.dev.yml --env-file .env.dev up -d db
+docker compose up -d db
 set -a && source .env.dev && set +a   # exporta las variables de dev al entorno
 ./mvnw spring-boot:run
 ```

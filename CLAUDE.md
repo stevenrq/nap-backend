@@ -18,7 +18,7 @@ mantén ese idioma al editar.
 ./mvnw test                                 # Ejecuta todos los tests.
 ./mvnw test -Dtest=RoleServiceImplTest      # Una sola clase de test.
 ./mvnw test -Dtest=RoleServiceImplTest#create  # Un solo método de test.
-docker compose -f docker-compose.dev.yml --env-file .env.dev up --build   # Dev local: Postgres + app.
+docker compose up --build                                                  # Dev local: Postgres + app.
 ```
 
 Requiere JDK 25. La app necesita un Postgres en marcha (los tests de slice `@WebMvcTest` no). Copia
@@ -31,7 +31,7 @@ y sembrar `src/main/resources/data.sql` en cada arranque (usuarios de prueba `ad
 ver RBAC). Spring enlaza esas variables por su nombre canónico (relaxed binding), sin
 `${...}` en el YAML.
 
-Solo hay un archivo Compose, `docker-compose.dev.yml` (Postgres local + app, esquema efímero con
+Solo hay un archivo Compose, `docker-compose.yml` (Postgres local + app, esquema efímero con
 seeds de prueba), pensado para correr la app en tu máquina. **Producción es Render**, que no usa
 docker-compose: su config (incluidos los overrides peligrosos) vive en el dashboard de Render — ver
 la sección CI/CD. El endpoint `GET /actuator/health` es público (lo usa el healthcheck del contenedor
