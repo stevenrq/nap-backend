@@ -29,6 +29,8 @@
 	</scm>
 	<properties>
 		<java.version>25</java.version>
+		<bucket4j.version>8.14.0</bucket4j.version>
+		<dependency-check.version>12.1.0</dependency-check.version>
 	</properties>
 	<dependencies>
 		<dependency>
@@ -96,6 +98,11 @@
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-security-oauth2-resource-server</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>com.bucket4j</groupId>
+			<artifactId>bucket4j_jdk17-core</artifactId>
+			<version>${bucket4j.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
@@ -218,6 +225,26 @@
 						<removeUnusedImports />
 					</java>
 				</configuration>
+			</plugin>
+			<plugin>
+				<!-- Escaneo de dependencias contra la base NVD; falla el build ante CVEs altos.
+				Ejecutar manualmente: ./mvnw org.owasp:dependency-check-maven:check
+				Recomendado definir un NVD API key (env NVD_API_KEY) para evitar el rate limit. -->
+				<groupId>org.owasp</groupId>
+				<artifactId>dependency-check-maven</artifactId>
+				<version>${dependency-check.version}</version>
+				<configuration>
+					<failBuildOnCVSS>8</failBuildOnCVSS>
+					<nvdApiKeyEnvironmentVariable>NVD_API_KEY</nvdApiKeyEnvironmentVariable>
+					<!-- No re-consultar la NVD si los datos cacheados tienen menos de 24h: menos
+					llamadas, menos riesgo de rate limit. -->
+					<nvdValidForHours>24</nvdValidForHours>
+					<suppressionFiles>
+						<suppressionFile>dependency-check-suppressions.xml</suppressionFile>
+					</suppressionFiles>
+				</configuration>
+				<!-- No se enlaza a ninguna fase: se invoca explícitamente en CI para no ralentizar
+				cada build local. -->
 			</plugin>
 			<plugin>
 				<groupId>org.jacoco</groupId>

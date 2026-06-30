@@ -39,3 +39,23 @@ jobs:
       # de Spring REST Docs en la fase package).
       - name: Build & test
         run: ./mvnw -B --no-transfer-progress verify
+
+      # Cachea la base de datos NVD entre ejecuciones para acelerar el escaneo.
+      # La clave incluye el run_id (siempre única) para que cada ejecución guarde una
+      # caché nueva con la base ya actualizada; restore-keys restaura la más reciente.
+      # Así la base no se queda obsoleta y el plugin solo aplica deltas incrementales.
+      - name: Cache OWASP NVD data
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2/repository/org/owasp/dependency-check-data
+          key: nvd-data-${{ runner.os }}-${{ github.run_id }}
+          restore-keys: |
+            nvd-data-${{ runner.os }}-
+
+      # Escaneo de CVEs en dependencias; falla el build si hay vulnerabilidades de
+      # severidad alta (CVSS >= 8). Requiere el secret NVD_API_KEY (ver README).
+      # Sin la key el primer arranque es muy lento por el rate limit de la NVD.
+      - name: OWASP Dependency-Check
+        env:
+          NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
+        run: ./mvnw -B --no-transfer-progress org.owasp:dependency-check-maven:check

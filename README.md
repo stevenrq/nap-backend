@@ -176,7 +176,8 @@ src/main/java/com/ns/nap_backend/
 ## CI/CD
 
 - **CI** (`.github/workflows/ci.yml`): en cada push/PR a `main` verifica el formato
-  (`spotless:check`) y ejecuta `mvnw verify`.
+  (`spotless:check`), ejecuta `mvnw verify` y escanea las dependencias con
+  **OWASP Dependency-Check** (falla el build ante CVEs con CVSS ≥ 8).
 - **CD** (`.github/workflows/cd.yml`): tras un CI exitoso en `main` (o disparo manual), lanza un
   deploy en **Render** vía API y espera a que quede `live`.
 
@@ -197,16 +198,37 @@ Con Auto-Deploy activo ocurren dos problemas:
 
 ### Secretos de GitHub Actions requeridos
 
-El workflow de CD necesita dos secretos configurados en el repositorio
+Configura estos secretos en el repositorio
 (**Settings → Secrets and variables → Actions → New repository secret**):
 
-| Secreto             | Valor                                                                                              |
-| ------------------- | -------------------------------------------------------------------------------------------------- |
-| `RENDER_API_KEY`    | API key de Render: Account Settings → API Keys.                                                    |
-| `RENDER_SERVICE_ID` | ID del servicio en Render (empieza con `srv-...`): visible en la URL del dashboard del servicio.   |
+| Secreto             | Workflow | Valor                                                                                              |
+| ------------------- | -------- | -------------------------------------------------------------------------------------------------- |
+| `RENDER_API_KEY`    | CD       | API key de Render: Account Settings → API Keys.                                                    |
+| `RENDER_SERVICE_ID` | CD       | ID del servicio en Render (empieza con `srv-...`): visible en la URL del dashboard del servicio.   |
+| `NVD_API_KEY`       | CI       | API key de la NVD para OWASP Dependency-Check (ver abajo).                                          |
 
-Si faltan, el CD falla en segundos con el mensaje
+Si faltan los de Render, el CD falla en segundos con el mensaje
 `Faltan los secretos RENDER_API_KEY y/o RENDER_SERVICE_ID`.
+
+#### NVD API key (escaneo de dependencias)
+
+OWASP Dependency-Check descarga la base **NVD** del NIST, cuya API está fuertemente
+limitada (rate-limited) sin clave: sin ella el escaneo puede tardar 10–30 min o fallar.
+
+1. Solicita una key gratuita en <https://nvd.nist.gov/developers/request-an-api-key>
+   (llega por correo al instante).
+2. Añádela como secreto del repositorio con el nombre `NVD_API_KEY`.
+
+El CI ya cachea la base NVD entre ejecuciones (`actions/cache`) y el plugin no la
+re-consulta si tiene menos de 24 h (`nvdValidForHours`), de modo que solo el primer
+run la descarga completa y los siguientes aplican deltas incrementales.
+
+Para ejecutarlo en local, exporta la variable y lanza el goal:
+
+```bash
+export NVD_API_KEY=tu-key
+./mvnw org.owasp:dependency-check-maven:check
+```
 
 ## Seguridad
 

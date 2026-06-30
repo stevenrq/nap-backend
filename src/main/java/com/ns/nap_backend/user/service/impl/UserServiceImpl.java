@@ -12,6 +12,8 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -21,6 +23,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class UserServiceImpl implements UserService {
+
+  private static final Logger log = LoggerFactory.getLogger(UserServiceImpl.class);
 
   private final UserRepository userRepository;
   private final RoleRepository roleRepository;
@@ -53,6 +57,7 @@ public class UserServiceImpl implements UserService {
   @Transactional
   public void deleteById(Long id) {
     userRepository.deleteById(id);
+    log.info("User deleted (id={})", id);
   }
 
   private User applyUpdate(User user, UserUpdateRequest request) {
@@ -71,6 +76,7 @@ public class UserServiceImpl implements UserService {
       user.setPassword(passwordEncoder.encode(request.getPassword()));
     }
 
+    log.info("User updated (id={})", user.getId());
     return userRepository.save(user);
   }
 

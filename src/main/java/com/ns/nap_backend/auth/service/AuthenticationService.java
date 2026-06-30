@@ -13,6 +13,8 @@ import com.ns.nap_backend.user.repository.UserRepository;
 import java.time.Instant;
 import java.util.HashSet;
 import java.util.Set;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -25,6 +27,8 @@ import org.springframework.web.server.ResponseStatusException;
 /** Orquesta el registro y el login, delegando la firma del JWT en {@link JwtTokenGenerator}. */
 @Service
 public class AuthenticationService {
+
+  private static final Logger log = LoggerFactory.getLogger(AuthenticationService.class);
 
   /** Nombre del rol por defecto que se asigna a los usuarios registrados. */
   private static final String USER = "USER";
@@ -69,6 +73,7 @@ public class AuthenticationService {
 
     String accessToken = jwtTokenGenerator.createToken(authentication);
     String refreshToken = refreshTokenService.issue(user);
+    log.info("User '{}' logged in successfully", user.getUsername());
     return new AuthResult(
         user.getUsername(), "User logged in successfully", accessToken, refreshToken);
   }
@@ -121,6 +126,7 @@ public class AuthenticationService {
     user.setRoles(roles);
 
     userRepository.save(user);
+    log.info("New user registered: '{}'", user.getUsername());
 
     // El registro solo crea la cuenta: no emite access ni refresh token. El usuario debe iniciar
     // sesión después (POST /api/auth/log-in) para obtener sus tokens.

@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Supresiones de OWASP Dependency-Check. Añade aquí falsos positivos justificados, p. ej.:
+
+  <suppress>
+    <notes>Razón documentada del descarte.</notes>
+    <packageUrl regex="true">^pkg:maven/com\.example/.*$</packageUrl>
+    <cve>CVE-0000-00000</cve>
+  </suppress>
+-->
+<suppressions xmlns="https://jeremylong.github.io/DependencyCheck/dependency-suppression.1.3.xsd">
+</suppressions>

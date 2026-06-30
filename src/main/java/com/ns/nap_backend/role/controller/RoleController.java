@@ -2,8 +2,8 @@ package com.ns.nap_backend.role.controller;
 
 import com.ns.nap_backend.role.dto.RoleCreationRequest;
 import com.ns.nap_backend.role.dto.RolePermissionsRequest;
+import com.ns.nap_backend.role.dto.RoleResponse;
 import com.ns.nap_backend.role.dto.RoleUpdateRequest;
-import com.ns.nap_backend.role.entity.Role;
 import com.ns.nap_backend.role.exception.RoleNotFoundException;
 import com.ns.nap_backend.role.service.RoleService;
 import jakarta.validation.Valid;
@@ -33,42 +33,46 @@ public class RoleController {
 
   @GetMapping
   @PreAuthorize("hasAuthority('role:read')")
-  public ResponseEntity<List<Role>> findAll() {
-    return ResponseEntity.ok(roleService.findAll());
+  public ResponseEntity<List<RoleResponse>> findAll() {
+    return ResponseEntity.ok(roleService.findAll().stream().map(RoleResponse::fromRole).toList());
   }
 
   @GetMapping("/{id}")
   @PreAuthorize("hasAuthority('role:read')")
-  public ResponseEntity<Role> findById(@PathVariable Long id) {
+  public ResponseEntity<RoleResponse> findById(@PathVariable Long id) {
     return ResponseEntity.ok(
-        roleService.findById(id).orElseThrow(() -> new RoleNotFoundException(id)));
+        RoleResponse.fromRole(
+            roleService.findById(id).orElseThrow(() -> new RoleNotFoundException(id))));
   }
 
   @GetMapping("/search")
   @PreAuthorize("hasAuthority('role:read')")
-  public ResponseEntity<Role> findByName(@RequestParam String name) {
+  public ResponseEntity<RoleResponse> findByName(@RequestParam String name) {
     return ResponseEntity.ok(
-        roleService.findByName(name).orElseThrow(() -> new RoleNotFoundException(name)));
+        RoleResponse.fromRole(
+            roleService.findByName(name).orElseThrow(() -> new RoleNotFoundException(name))));
   }
 
   @PostMapping
   @PreAuthorize("hasAuthority('role:create')")
-  public ResponseEntity<Role> create(@Valid @RequestBody RoleCreationRequest request) {
-    return ResponseEntity.status(HttpStatus.CREATED).body(roleService.create(request));
+  public ResponseEntity<RoleResponse> create(@Valid @RequestBody RoleCreationRequest request) {
+    return ResponseEntity.status(HttpStatus.CREATED)
+        .body(RoleResponse.fromRole(roleService.create(request)));
   }
 
   @PutMapping("/{id}")
   @PreAuthorize("hasAuthority('role:update')")
-  public ResponseEntity<Role> update(
+  public ResponseEntity<RoleResponse> update(
       @PathVariable Long id, @Valid @RequestBody RoleUpdateRequest request) {
-    return ResponseEntity.ok(roleService.update(id, request));
+    return ResponseEntity.ok(RoleResponse.fromRole(roleService.update(id, request)));
   }
 
   @PutMapping("/{id}/permissions")
   @PreAuthorize("hasAuthority('role:update')")
-  public ResponseEntity<Role> replacePermissions(
+  public ResponseEntity<RoleResponse> replacePermissions(
       @PathVariable Long id, @Valid @RequestBody RolePermissionsRequest request) {
-    return ResponseEntity.ok(roleService.replacePermissions(id, request.permissionNames()));
+    return ResponseEntity.ok(
+        RoleResponse.fromRole(roleService.replacePermissions(id, request.permissionNames())));
   }
 
   @DeleteMapping("/{id}")

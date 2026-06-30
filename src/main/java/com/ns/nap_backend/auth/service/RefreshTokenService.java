@@ -13,6 +13,8 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Base64;
 import java.util.HexFormat;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -25,6 +27,8 @@ import org.springframework.web.server.ResponseStatusException;
  */
 @Service
 public class RefreshTokenService {
+
+  private static final Logger log = LoggerFactory.getLogger(RefreshTokenService.class);
 
   private static final SecureRandom SECURE_RANDOM = new SecureRandom();
   private static final Base64.Encoder URL_ENCODER = Base64.getUrlEncoder().withoutPadding();
@@ -100,6 +104,9 @@ public class RefreshTokenService {
     if (token.isRevoked()) {
       // Reuso de un token ya rotado: posible robo. Se revocan todas las sesiones del usuario en una
       // transacción propia para que la revocación se confirme pese al rollback que provoca el 401.
+      log.warn(
+          "Refresh token reuse detected for user '{}'; revoking all sessions",
+          token.getUser().getUsername());
       reuseHandler.revokeAllSessions(token.getUser());
       throw unauthorized("Refresh token reuse detected");
     }
