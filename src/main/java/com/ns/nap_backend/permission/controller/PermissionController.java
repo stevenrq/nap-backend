@@ -1,6 +1,6 @@
 package com.ns.nap_backend.permission.controller;
 
-import com.ns.nap_backend.permission.entity.Permission;
+import com.ns.nap_backend.permission.dto.PermissionResponse;
 import com.ns.nap_backend.permission.exception.PermissionNotFoundException;
 import com.ns.nap_backend.permission.service.PermissionService;
 import java.util.List;
@@ -28,23 +28,26 @@ public class PermissionController {
 
   @GetMapping
   @PreAuthorize("hasAuthority('permission:read')")
-  public ResponseEntity<List<Permission>> findAll() {
-    return ResponseEntity.ok(permissionService.findAll());
+  public ResponseEntity<List<PermissionResponse>> findAll() {
+    return ResponseEntity.ok(
+        permissionService.findAll().stream().map(PermissionResponse::fromPermission).toList());
   }
 
   @GetMapping("/{id}")
   @PreAuthorize("hasAuthority('permission:read')")
-  public ResponseEntity<Permission> findById(@PathVariable Long id) {
+  public ResponseEntity<PermissionResponse> findById(@PathVariable Long id) {
     return ResponseEntity.ok(
-        permissionService.findById(id).orElseThrow(() -> new PermissionNotFoundException(id)));
+        PermissionResponse.fromPermission(
+            permissionService.findById(id).orElseThrow(() -> new PermissionNotFoundException(id))));
   }
 
   @GetMapping("/search")
   @PreAuthorize("hasAuthority('permission:read')")
-  public ResponseEntity<Permission> findByName(@RequestParam String name) {
+  public ResponseEntity<PermissionResponse> findByName(@RequestParam String name) {
     return ResponseEntity.ok(
-        permissionService
-            .findByName(name)
-            .orElseThrow(() -> new PermissionNotFoundException(name)));
+        PermissionResponse.fromPermission(
+            permissionService
+                .findByName(name)
+                .orElseThrow(() -> new PermissionNotFoundException(name))));
   }
 }

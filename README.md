@@ -176,7 +176,8 @@ src/main/java/com/ns/nap_backend/
 ## CI/CD
 
 - **CI** (`.github/workflows/ci.yml`): en cada push/PR a `main` verifica el formato
-  (`spotless:check`) y ejecuta `mvnw verify`.
+  (`spotless:check`), ejecuta `mvnw verify` y escanea las dependencias con
+  **OSV-Scanner** (falla el build ante vulnerabilidades conocidas).
 - **CD** (`.github/workflows/cd.yml`): tras un CI exitoso en `main` (o disparo manual), lanza un
   deploy en **Render** vía API y espera a que quede `live`.
 
@@ -197,16 +198,33 @@ Con Auto-Deploy activo ocurren dos problemas:
 
 ### Secretos de GitHub Actions requeridos
 
-El workflow de CD necesita dos secretos configurados en el repositorio
+Configura estos secretos en el repositorio
 (**Settings → Secrets and variables → Actions → New repository secret**):
 
-| Secreto             | Valor                                                                                              |
-| ------------------- | -------------------------------------------------------------------------------------------------- |
-| `RENDER_API_KEY`    | API key de Render: Account Settings → API Keys.                                                    |
-| `RENDER_SERVICE_ID` | ID del servicio en Render (empieza con `srv-...`): visible en la URL del dashboard del servicio.   |
+| Secreto             | Workflow | Valor                                                                                              |
+| ------------------- | -------- | -------------------------------------------------------------------------------------------------- |
+| `RENDER_API_KEY`    | CD       | API key de Render: Account Settings → API Keys.                                                    |
+| `RENDER_SERVICE_ID` | CD       | ID del servicio en Render (empieza con `srv-...`): visible en la URL del dashboard del servicio.   |
 
-Si faltan, el CD falla en segundos con el mensaje
+Si faltan los de Render, el CD falla en segundos con el mensaje
 `Faltan los secretos RENDER_API_KEY y/o RENDER_SERVICE_ID`.
+
+#### Escaneo de dependencias (OSV-Scanner)
+
+El CI escanea las dependencias con **OSV-Scanner** (base [OSV](https://osv.dev/)),
+que corre en su propio contenedor y **no requiere NVD ni API key**. Falla el build si
+encuentra vulnerabilidades conocidas.
+
+Para que el escaneo incluya las dependencias transitivas con sus versiones exactas, el
+CI primero genera un **SBOM CycloneDX** con Maven y escanea ese archivo (así OSV-Scanner
+no hace su propia resolución Maven, que es frágil ante rate limits y constraints raros).
+
+Para reproducirlo en local (requiere [instalar osv-scanner](https://google.github.io/osv-scanner/installation/)):
+
+```bash
+./mvnw org.cyclonedx:cyclonedx-maven-plugin:2.9.1:makeAggregateBom
+osv-scanner -L target/bom.json
+```
 
 ## Seguridad
 

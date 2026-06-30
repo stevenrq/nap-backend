@@ -16,11 +16,15 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class RoleServiceImpl implements RoleService {
+
+  private static final Logger log = LoggerFactory.getLogger(RoleServiceImpl.class);
 
   private final RoleRepository roleRepository;
   private final PermissionRepository permissionRepository;
@@ -67,7 +71,9 @@ public class RoleServiceImpl implements RoleService {
     role.setName(request.name());
     role.setDescription(request.description());
     role.setPermissions(resolvePermissions(request.permissionNames()));
-    return roleRepository.save(role);
+    Role saved = roleRepository.save(role);
+    log.info("Role created: '{}' (id={})", saved.getName(), saved.getId());
+    return saved;
   }
 
   @Transactional
@@ -94,6 +100,7 @@ public class RoleServiceImpl implements RoleService {
   public Role replacePermissions(Long id, Set<String> permissionNames) {
     Role role = roleRepository.findById(id).orElseThrow(() -> new RoleNotFoundException(id));
     role.setPermissions(resolvePermissions(permissionNames));
+    log.info("Permissions replaced for role '{}' (id={})", role.getName(), id);
     return roleRepository.save(role);
   }
 
@@ -111,6 +118,7 @@ public class RoleServiceImpl implements RoleService {
     userRepository.deleteRoleAssignments(id);
 
     roleRepository.delete(role);
+    log.info("Role deleted: '{}' (id={})", role.getName(), id);
   }
 
   /**
