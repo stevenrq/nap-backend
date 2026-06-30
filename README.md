@@ -60,6 +60,9 @@ cp .env.example .env.dev
 | `JWT_COOKIE_SAMESITE`       | `Lax`                    | `Lax` \| `Strict` \| `None` (usa `None` + `secure` si front y API están en dominios distintos). |
 | `SPRING_JPA_HIBERNATE_DDL_AUTO` | `update`             | Estrategia de esquema. Dev usa `create-drop` (ya en `.env.dev`).   |
 | `SPRING_SQL_INIT_MODE`      | `never`                  | Ejecuta `data.sql`. Dev usa `always` (ya en `.env.dev`). |
+| `ADMIN_USERNAME`            | `admin`                  | Usuario admin inicial, creado al arrancar si no existe (`AdminUserSeeder`). |
+| `ADMIN_PASSWORD`            | `admin`                  | Contraseña del admin inicial. **Define una propia en producción.**         |
+| `ADMIN_EMAIL`               | `admin@system.nap.com`   | Correo del admin inicial.                                |
 
 ### 2a. Con Docker Compose (recomendado)
 
@@ -87,12 +90,16 @@ set -a && source .env.dev && set +a   # exporta las variables de dev al entorno
 > arranque. Sin esas variables (p. ej. `./mvnw spring-boot:run` a secas), la app no reinicia ni
 > siembra la BD.
 
-### Usuarios de prueba (sembrados por `data.sql`)
+### Usuarios de prueba (desarrollo, sembrados por `data.sql`)
 
 | Usuario   | Contraseña | Rol     |
 | --------- | ---------- | ------- |
 | `admin`   | `admin`    | `ADMIN` |
 | `user01`  | `user01`   | `USER`  |
+
+> Estos usuarios solo se siembran en desarrollo (`sql.init.mode=always`). En producción `data.sql`
+> no se ejecuta: el usuario admin lo crea `AdminUserSeeder` al arrancar (idempotente), con las
+> credenciales de `ADMIN_USERNAME` / `ADMIN_PASSWORD` / `ADMIN_EMAIL`.
 
 ## API
 
@@ -205,4 +212,5 @@ Si faltan, el CD falla en segundos con el mensaje
 
 > Las claves RSA de ejemplo en `src/main/resources/certs/` y las contraseñas por defecto son **solo
 > para desarrollo**. En producción usa claves y credenciales propias mediante variables de entorno y
-> secretos, y activa `JWT_COOKIE_SECURE=true` sobre HTTPS.
+> secretos (define una `ADMIN_PASSWORD` propia, no dejes el `admin`/`admin` por defecto), y activa
+> `JWT_COOKIE_SECURE=true` sobre HTTPS.

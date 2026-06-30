@@ -73,6 +73,8 @@ public abstract class Person implements Serializable {
     this.createdAt = LocalDateTime.now(ZoneOffset.UTC);
     this.updatedAt = LocalDateTime.now(ZoneOffset.UTC);
 
+    // En la herencia JOINED el hook @PrePersist se centraliza en la clase base; por eso aquí se
+    // delega en User la inicialización de sus flags de cuenta (enabled, accountNonLocked, ...).
     if (this instanceof User user) {
       user.prePersistUser();
     }

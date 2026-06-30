@@ -27,7 +27,8 @@ de `application.yaml` es seguro para prod** (`ddl-auto=update`, `sql.init.mode=n
 esquema ni siembra datos. **Desarrollo lo anula** vía `.env.dev` con
 `SPRING_JPA_HIBERNATE_DDL_AUTO=create-drop` y `SPRING_SQL_INIT_MODE=always` para tener esquema efímero
 y sembrar `src/main/resources/data.sql` en cada arranque (usuarios de prueba `admin`/`admin` y
-`user01`/`user01`). Spring enlaza esas variables por su nombre canónico (relaxed binding), sin
+`user01`/`user01`; en prod, donde `data.sql` no corre, el usuario admin lo crea `AdminUserSeeder` —
+ver RBAC). Spring enlaza esas variables por su nombre canónico (relaxed binding), sin
 `${...}` en el YAML.
 
 Solo hay un archivo Compose, `docker-compose.dev.yml` (Postgres local + app, esquema efímero con
@@ -53,6 +54,11 @@ La autorización se basa en **permisos de grano fino `recurso:acción`** (p. ej.
   y garantiza los roles bootstrap `ADMIN` (todos los permisos) y `USER` (`user:read`). Esto funciona
   igual en dev (`create-drop`) que con una BD persistente en prod — los permisos nunca salen de
   `data.sql`.
+- **`config/AdminUserSeeder`** (`ApplicationRunner`, `@Order(2)`, corre tras `RbacSeeder`) garantiza
+  el usuario administrador en cada arranque, de forma idempotente (no hace nada si ya existe). Toma
+  las credenciales de `ADMIN_USERNAME` / `ADMIN_PASSWORD` / `ADMIN_EMAIL` (por defecto `admin`/`admin`).
+  Es lo que crea el admin en prod, donde `data.sql` no se ejecuta; en dev `data.sql` ya lo siembra y
+  el seeder lo respeta sin duplicarlo.
 - **Los permisos son propiedad de la API y de solo lectura** por HTTP (solo `GET /api/permissions`).
   Los **roles** son agrupaciones dinámicas de permisos del catálogo con CRUD completo (`/api/roles`);
   un rol nuevo protege sus endpoints de inmediato, sin recompilar.
@@ -85,8 +91,9 @@ La autorización se basa en **permisos de grano fino `recurso:acción`** (p. ej.
   (Redis).
 - El registro (`/api/auth/sign-up`) crea la cuenta pero **no emite tokens**; el usuario debe iniciar
   sesión después.
-- `/api/auth/**` y `/docs/**` son públicos; todo lo demás requiere un access token válido. Los
-  orígenes CORS vienen de `app.cors.allowed-origins` (por defecto `http://localhost:4200`).
+- `/api/auth/**`, `/docs/**` y `/actuator/health` son públicos; todo lo demás requiere un access
+  token válido. Los orígenes CORS vienen de `app.cors.allowed-origins` (por defecto
+  `http://localhost:4200`).
 
 ### Entidades
 
@@ -124,6 +131,8 @@ compartido está en `src/test/.../support/` (`RestDocsConfig`, `SecurityDocsTest
   - `JWT_COOKIE_SECURE=true` y `JWT_COOKIE_SAMESITE=None` (front en Vercel y API en Render = cross-site)
   - `APP_CORS_ALLOWED_ORIGINS` = dominio(s) del frontend en Vercel
   - secretos de la BD gestionada (Neon): `SPRING_DATASOURCE_URL` / `_USERNAME` / `_PASSWORD`
+  - credenciales del admin inicial: `ADMIN_USERNAME` / `ADMIN_PASSWORD` / `ADMIN_EMAIL` — **define una
+    contraseña propia**; el default es `admin`/`admin` (lo crea `AdminUserSeeder`, ver RBAC)
   - `SPRING_JPA_HIBERNATE_DDL_AUTO` / `SPRING_SQL_INIT_MODE`: **opcionales** — el default del código
     ya es seguro (`update` / `never`); déjalas sin definir o explícitas, pero **no** las pongas en
     `create-drop` / `always` en prod.
