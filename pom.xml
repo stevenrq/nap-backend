@@ -30,7 +30,7 @@
 	<properties>
 		<java.version>25</java.version>
 		<bucket4j.version>8.14.0</bucket4j.version>
-		<dependency-check.version>12.1.0</dependency-check.version>
+		<dependency-check.version>12.1.3</dependency-check.version>
 	</properties>
 	<dependencies>
 		<dependency>
