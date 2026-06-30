@@ -173,6 +173,20 @@ src/main/java/com/ns/nap_backend/
 - **CD** (`.github/workflows/cd.yml`): tras un CI exitoso en `main` (o disparo manual), lanza un
   deploy en **Render** vía API y espera a que quede `live`.
 
+### Auto-Deploy de Render
+
+Render tiene **Auto-Deploy activado por defecto**: despliega en cada push a `main`
+sin esperar a que el CI pase. Esto debe desactivarse para que el CD workflow sea el
+único que controle los despliegues:
+
+> **Render → nap-backend → Settings → Build & Deploy → Auto-Deploy → Off → Save Changes**
+
+Con Auto-Deploy activo ocurren dos problemas:
+- Render despliega aunque el CI haya fallado.
+- Cuando el CD dispara un deploy vía API sobre un commit que Render ya está
+  desplegando, la API devuelve un body vacío y el script no puede obtener el ID del
+  deploy.
+
 ### Secretos de GitHub Actions requeridos
 
 El workflow de CD necesita dos secretos configurados en el repositorio
