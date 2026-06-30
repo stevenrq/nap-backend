@@ -213,12 +213,17 @@ Si faltan los de Render, el CD falla en segundos con el mensaje
 
 El CI escanea las dependencias con **OSV-Scanner** (base [OSV](https://osv.dev/)),
 que corre en su propio contenedor y **no requiere NVD ni API key**. Falla el build si
-encuentra vulnerabilidades conocidas y resuelve también las transitivas desde `pom.xml`.
+encuentra vulnerabilidades conocidas.
 
-Para ejecutarlo en local (requiere [instalar osv-scanner](https://google.github.io/osv-scanner/installation/)):
+Para que el escaneo incluya las dependencias transitivas con sus versiones exactas, el
+CI primero genera un **SBOM CycloneDX** con Maven y escanea ese archivo (así OSV-Scanner
+no hace su propia resolución Maven, que es frágil ante rate limits y constraints raros).
+
+Para reproducirlo en local (requiere [instalar osv-scanner](https://google.github.io/osv-scanner/installation/)):
 
 ```bash
-osv-scanner --recursive ./
+./mvnw org.cyclonedx:cyclonedx-maven-plugin:2.9.1:makeAggregateBom
+osv-scanner -L target/bom.json
 ```
 
 ## Seguridad

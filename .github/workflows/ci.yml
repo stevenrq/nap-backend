@@ -40,13 +40,17 @@ jobs:
       - name: Build & test
         run: ./mvnw -B --no-transfer-progress verify
 
-      # Escaneo de vulnerabilidades de las dependencias contra la base OSV.
-      # Corre en su propio contenedor (sin NVD ni API key) y falla el build si
-      # encuentra vulnerabilidades conocidas. Resuelve también las transitivas
-      # a partir de pom.xml.
+      # Genera un SBOM CycloneDX con Maven (resuelve todas las transitivas con sus
+      # versiones exactas). Escanear el SBOM evita que OSV-Scanner haga su propia
+      # resolución Maven, que es frágil (rate limits 429 y bugs de parseo de versiones).
+      - name: Generar SBOM (CycloneDX)
+        run: ./mvnw -B --no-transfer-progress org.cyclonedx:cyclonedx-maven-plugin:2.9.1:makeAggregateBom
+
+      # Escaneo de vulnerabilidades contra la base OSV. Corre en su propio contenedor
+      # (sin NVD ni API key) y falla el build ante vulnerabilidades conocidas.
       - name: OSV-Scanner (escaneo de dependencias)
         uses: google/osv-scanner-action/osv-scanner-action@v2.3.8
         with:
           scan-args: |-
-            --recursive
-            ./
+            -L
+            target/bom.json
