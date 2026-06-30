@@ -218,7 +218,7 @@ encuentra vulnerabilidades conocidas y resuelve también las transitivas desde `
 Para ejecutarlo en local (requiere [instalar osv-scanner](https://google.github.io/osv-scanner/installation/)):
 
 ```bash
-osv-scanner --recursive --skip-git ./
+osv-scanner --recursive ./
 ```
 
 ## Seguridad
