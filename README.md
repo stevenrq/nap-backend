@@ -173,6 +173,19 @@ src/main/java/com/ns/nap_backend/
 - **CD** (`.github/workflows/cd.yml`): tras un CI exitoso en `main` (o disparo manual), lanza un
   deploy en **Render** vía API y espera a que quede `live`.
 
+### Secretos de GitHub Actions requeridos
+
+El workflow de CD necesita dos secretos configurados en el repositorio
+(**Settings → Secrets and variables → Actions → New repository secret**):
+
+| Secreto             | Valor                                                                                              |
+| ------------------- | -------------------------------------------------------------------------------------------------- |
+| `RENDER_API_KEY`    | API key de Render: Account Settings → API Keys.                                                    |
+| `RENDER_SERVICE_ID` | ID del servicio en Render (empieza con `srv-...`): visible en la URL del dashboard del servicio.   |
+
+Si faltan, el CD falla en segundos con el mensaje
+`Faltan los secretos RENDER_API_KEY y/o RENDER_SERVICE_ID`.
+
 ## Seguridad
 
 > Las claves RSA de ejemplo en `src/main/resources/certs/` y las contraseñas por defecto son **solo
