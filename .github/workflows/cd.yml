@@ -49,20 +49,28 @@ jobs:
             -H "$auth" \
             -H "Content-Type: application/json" \
             -d '{"clearCache":"do_not_clear"}')"
-          echo "Respuesta de Render: $response"
-          deploy_id="$(echo "$response" | jq -r '.id // .deploy.id')"
+
+          deploy_id="$(echo "$response" | jq -r '.id // .deploy.id // empty' 2>/dev/null || true)"
+
+          # Si el trigger no devuelve ID (body vacío o formato inesperado),
+          # recupera el deploy más reciente del servicio como fallback.
+          if [ -z "$deploy_id" ] || [ "$deploy_id" = "null" ]; then
+            echo "Respuesta del trigger vacía o sin ID — buscando el deploy más reciente…"
+            deploy_id="$(curl -fsS "${api}?limit=1" -H "$auth" \
+              | jq -r '.[0].deploy.id // .[0].id // empty' 2>/dev/null || true)"
+          fi
 
           if [ -z "$deploy_id" ] || [ "$deploy_id" = "null" ]; then
-            echo "::error::Render no devolvió un id de deploy."
+            echo "::error::No se pudo obtener el ID del deploy de Render."
             exit 1
           fi
 
-          echo "Deploy creado: $deploy_id"
+          echo "Deploy: $deploy_id"
           echo "Seguimiento: https://dashboard.render.com/web/${RENDER_SERVICE_ID}/deploys/${deploy_id}"
 
           # Polling hasta ~20 min (80 intentos x 15 s).
           for attempt in $(seq 1 80); do
-            status="$(curl -fsS "${api}/${deploy_id}" -H "$auth" | jq -r '.status // .deploy.status')"
+            status="$(curl -fsS "${api}/${deploy_id}" -H "$auth" | jq -r '.deploy.status // .status // empty')"
             echo "[$attempt] estado del deploy: $status"
             case "$status" in
               live)
