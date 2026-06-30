@@ -182,6 +182,7 @@ sin esperar a que el CI pase. Esto debe desactivarse para que el CD workflow sea
 > **Render → nap-backend → Settings → Build & Deploy → Auto-Deploy → Off → Save Changes**
 
 Con Auto-Deploy activo ocurren dos problemas:
+
 - Render despliega aunque el CI haya fallado.
 - Cuando el CD dispara un deploy vía API sobre un commit que Render ya está
   desplegando, la API devuelve un body vacío y el script no puede obtener el ID del
